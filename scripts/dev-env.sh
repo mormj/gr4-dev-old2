@@ -12,7 +12,15 @@ fi
 
 set -a
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -n "${BASH_SOURCE[0]:-}" ]; then
+  script_path="${BASH_SOURCE[0]}"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+  script_path="${(%):-%N}"
+else
+  script_path="$0"
+fi
+
+ROOT_DIR="$(cd "$(dirname "${script_path}")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 
 # Defaults
