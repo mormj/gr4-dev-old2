@@ -16,8 +16,8 @@ It provides monorepo-like developer ergonomics (bootstrap, shared env, build/ins
 
 This repo does not own or merge application source trees.
 
-It also carries local builder references under `builders/` for dependency
-images and toolchain baselines.
+It also carries Docker image definitions under `images/` for dependency
+images, toolchain baselines, and production runtime images.
 
 ## Quick start
 
@@ -158,16 +158,46 @@ If you want to develop on a local branch in a repo, create/switch branch inside 
 - `LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `PYTHONPATH`
 - `GNURADIO4_PLUGIN_DIRECTORIES`
 
-## Builder references
+## Image References
 
-`builders/` mirrors the dependency-image layout used in `gr4-ci`:
+`images/` mirrors the dependency-image layout used in `gr4-ci` and owns the
+workspace Docker image build flow:
 
-- `builders/<distro>/base/` for distro-wide prerequisites
-- `builders/<distro>/profiles/<profile>/` for toolchain-specific layers
-- `builders/Makefile` for local image builds
+- `images/<distro>/base/` for distro-wide prerequisites
+- `images/<distro>/profiles/<profile>/` for toolchain-specific layers
+- `images/Makefile` for local and multi-arch pushed builder images only
+- `images/Dockerfile` for gr4cp/Studio product images
+- `images/build-images.sh` for product image builds
+- `compose.yml` for running the production control-plane plus Studio instance
 
 These files are a reference for dependency baselines, separate from the
-workspace's CMake config and host environment scripts.
+workspace's CMake config and host environment scripts. See
+[`images/README.md`](images/README.md) for local, push, and multi-arch
+image workflows.
+
+After product images are built or available from GHCR, run the production stack:
+
+```bash
+docker compose up
+```
+
+By default this uses local `gr4-dev/...` product images. To run hosted images,
+set `IMAGE_NAMESPACE`, for example:
+
+```bash
+IMAGE_NAMESPACE=ghcr.io/$USER/gr4-dev docker compose up
+```
+
+The Compose runtime sets `GNURADIO4_PLUGIN_DIRECTORIES` inside the
+control-plane container to include `/usr/local/lib/gnuradio-4/plugins`,
+`/usr/local/lib`, and `/opt/gr4-control-plane/lib`. Use
+`GR4_DOCKER_PLUGIN_DIRECTORIES` to override that container-local path.
+
+Compose also mounts the repo-local, gitignored `data/` directory into the
+control-plane container at `/opt/gr4-control-plane/data`. Since the control
+plane runs from `/opt/gr4-control-plane`, graphs can use relative paths under
+`data/`. Use `GR4_DOCKER_HOST_DATA_DIR` and `GR4_DOCKER_CONTAINER_DATA_DIR` to
+override that mount.
 
 ## CMake args (shared and local)
 

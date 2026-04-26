@@ -1,0 +1,23 @@
+services:
+  gr4-control-plane:
+    image: ${GR4_CONTROL_PLANE_IMAGE:-${IMAGE_NAMESPACE:-gr4-dev}/gr4-control-plane-runtime:${IMAGE_TAG:-latest}}
+    environment:
+      GNURADIO4_PLUGIN_DIRECTORIES: ${GR4_DOCKER_PLUGIN_DIRECTORIES:-/usr/local/lib/gnuradio-4/plugins:/usr/local/lib:/opt/gr4-control-plane/lib}
+    volumes:
+      - "${GR4_DOCKER_HOST_DATA_DIR:-./data}:${GR4_DOCKER_CONTAINER_DATA_DIR:-/opt/gr4-control-plane/data}:rw"
+    ports:
+      - "${GR4_DOCKER_CONTROL_PLANE_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  gr4-studio:
+    image: ${GR4_STUDIO_IMAGE:-${IMAGE_NAMESPACE:-gr4-dev}/gr4-studio:${IMAGE_TAG:-latest}}
+    depends_on:
+      gr4-control-plane:
+        condition: service_healthy
+    ports:
+      - "${GR4_DOCKER_STUDIO_PORT:-8088}:80"

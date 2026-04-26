@@ -2,6 +2,7 @@
 .env
 
 # Runtime artifacts
+data/
 var/logs/*.log
 var/run/*.pid
 
