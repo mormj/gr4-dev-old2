@@ -1,10 +1,14 @@
 # gr4-dev
 
-`gr4-dev` is a local multi-repo development workspace (superproject) for GNU Radio 4 related projects.
+`gr4-dev` is a local multi-repo development workspace for GNU Radio 4 related
+projects.
 
-It provides monorepo-like developer ergonomics (bootstrap, shared env, build/install helpers) while keeping each project in its own repository under `src/`.  
+It provides monorepo-like developer ergonomics: bootstrap, shared environment
+wiring, build/install helpers, and Docker image workflows, while keeping each
+project in its own repository under `src/`.
 
-**This is not intended as a dependency management system, just a quick dev workspace setup**
+This is not a dependency management system. It is a quick development workspace
+setup.
 
 ## What this repo owns
 
@@ -21,7 +25,7 @@ images, toolchain baselines, and production runtime images.
 
 ## Quick start
 
-1. Create local env file - edit to match your environment and build tools
+1. Create a local env file and edit it to match your environment.
 
 ```bash
 cp .env.example .env
@@ -39,7 +43,7 @@ cp .env.example .env
 ./scripts/doctor.sh
 ```
 
-4. Load environment in your shell (do this each time a new shell is opened)
+4. Load the environment in your shell. Do this each time a new shell is opened.
 
 ```bash
 source scripts/dev-env.sh
@@ -145,7 +149,8 @@ Hierarchy:
 - resolve refs with remote-first preference for branch names (for example `origin/main`)
 - check out the resolved target in detached HEAD
 
-If you want to develop on a local branch in a repo, create/switch branch inside that repo after bootstrap.
+If you want to develop on a local branch in a repo, create or switch branches
+inside that repo after bootstrap.
 
 ## Environment details
 
@@ -158,22 +163,26 @@ If you want to develop on a local branch in a repo, create/switch branch inside 
 - `LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `PYTHONPATH`
 - `GNURADIO4_PLUGIN_DIRECTORIES`
 
-## Image References
+## Docker Images
 
-`images/` mirrors the dependency-image layout used in `gr4-ci` and owns the
-workspace Docker image build flow:
+`images/` owns the Docker build flow:
 
 - `images/<distro>/base/` for distro-wide prerequisites
 - `images/<distro>/profiles/<profile>/` for toolchain-specific layers
 - `images/Makefile` for local and multi-arch pushed builder images only
-- `images/Dockerfile` for gr4cp/Studio product images
-- `images/build-images.sh` for product image builds
+- `images/Dockerfile` for GNU Radio 4, control-plane, runtime, and Studio product images
+- `images/build-images.sh` for product image builds and pushes
 - `compose.yml` for running the production control-plane plus Studio instance
 
-These files are a reference for dependency baselines, separate from the
-workspace's CMake config and host environment scripts. See
-[`images/README.md`](images/README.md) for local, push, and multi-arch
-image workflows.
+See [images/README.md](images/README.md) for the full local, GHCR, and
+multi-arch image workflow.
+
+Local image build:
+
+```bash
+make -C images build-ubuntu-24.04-gcc-14
+images/build-images.sh --profile ubuntu-24.04-gcc-14
+```
 
 After product images are built or available from GHCR, run the production stack:
 
@@ -199,6 +208,9 @@ plane runs from `/opt/gr4-control-plane`, graphs can use relative paths under
 `data/`. Use `GR4_DOCKER_HOST_DATA_DIR` and `GR4_DOCKER_CONTAINER_DATA_DIR` to
 override that mount.
 
+Local product image builds use the workspace repos under `src/`. Push builds
+use the `url` and `ref` entries from `repos.yaml`.
+
 ## CMake args (shared and local)
 
 For CMake repos, configure args are layered in this order:
@@ -215,9 +227,11 @@ Optional per-repo CMake source override:
 
 - `config/<repo>.cmake.source`
 
-Example: `config/gr4-studio.cmake.source` contains `blocks`, so Studio configures from `src/gr4-studio/blocks`.
+Example: `config/gr4-studio.cmake.source` contains `blocks`, so Studio
+configures from `src/gr4-studio/blocks`.
 
-When `build-all.sh` is called without args, it builds repos in `repos.yaml` order (`name` + `dest` entries).
+When `build-all.sh` is called without args, it builds repos in `repos.yaml`
+order.
 
 ## Notes
 

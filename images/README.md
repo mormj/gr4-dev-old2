@@ -1,12 +1,12 @@
 # Images
 
-`images/` owns the Docker build inputs for gr4-dev:
+`images/` owns the Docker build inputs for `gr4-dev`:
 
 - builder matrix images for distro/toolchain prerequisites
 - product image builds for GNU Radio 4, gr4-control-plane, and gr4-studio
 
-The runtime interface is the repo-root `compose.yml`. After images exist,
-running the stack should be:
+The runtime interface is the repo-root `compose.yml`. After product images
+exist, running the stack should be:
 
 ```bash
 docker compose up
@@ -31,7 +31,7 @@ images/
 
 ## Responsibilities
 
-`Makefile` builds and pushes builder images only.
+`Makefile` builds and pushes builder matrix images only.
 
 `build-images.sh` builds and pushes product images only. It assumes the selected
 builder image already exists locally or in the registry.
@@ -81,6 +81,20 @@ ghcr.io/$USER/gr4-dev/gr4-studio:latest
 and proxies `/api/*` to the `gr4-control-plane` service on port `8080`.
 The runtime image includes `curl` so Compose can health-check the control plane.
 
+## Quick Local Workflow
+
+```bash
+make -C images build-ubuntu-24.04-gcc-14
+images/build-images.sh --profile ubuntu-24.04-gcc-14
+docker compose up
+```
+
+Studio is available at:
+
+```text
+http://127.0.0.1:8088
+```
+
 ## 1. Build Builder Images
 
 List available builder targets:
@@ -94,21 +108,21 @@ Build a local single-arch builder:
 
 ```bash
 cd images
-make build-ubuntu-26.04-gcc
+make build-ubuntu-24.04-gcc-14
 ```
 
 That creates:
 
 ```text
-gr4-dev/ubuntu-26.04-base:latest
-gr4-dev/ubuntu-26.04-gcc:latest
+gr4-dev/ubuntu-24.04-base:latest
+gr4-dev/ubuntu-24.04-gcc-14:latest
 ```
 
 Push a multi-arch builder:
 
 ```bash
 cd images
-make push-ubuntu-26.04-gcc \
+make push-ubuntu-24.04-gcc-14 \
   BUILDER_NAMESPACE=ghcr.io/$USER/gr4-dev \
   PLATFORMS=linux/amd64,linux/arm64
 ```
@@ -116,25 +130,25 @@ make push-ubuntu-26.04-gcc \
 That publishes:
 
 ```text
-ghcr.io/$USER/gr4-dev/ubuntu-26.04-base:latest
-ghcr.io/$USER/gr4-dev/ubuntu-26.04-gcc:latest
+ghcr.io/$USER/gr4-dev/ubuntu-24.04-base:latest
+ghcr.io/$USER/gr4-dev/ubuntu-24.04-gcc-14:latest
 ```
 
 ## 2. Build Product Images
 
-Local product build with Ubuntu 26.04 GCC:
+Local product build with Ubuntu 24.04 GCC 14:
 
 ```bash
 cd images
-./build-images.sh --profile ubuntu-26.04-gcc
+./build-images.sh --profile ubuntu-24.04-gcc-14
 ```
 
 Local mode is the default. It derives:
 
 ```text
-BUILDER_IMAGE=gr4-dev/ubuntu-26.04-gcc:latest
+BUILDER_IMAGE=gr4-dev/ubuntu-24.04-gcc-14:latest
 IMAGE_NAMESPACE=gr4-dev
-RUNTIME_BASE_IMAGE=ubuntu:26.04
+RUNTIME_BASE_IMAGE=ubuntu:24.04
 SOURCE_MODE=local
 ```
 
@@ -152,15 +166,15 @@ Push product images after pushing the matching builder image:
 ```bash
 cd images
 GHCR_TOKEN=... \
-./build-images.sh --push --profile ubuntu-26.04-gcc
+./build-images.sh --push --profile ubuntu-24.04-gcc-14
 ```
 
 In push mode, `build-images.sh` derives:
 
 ```text
-BUILDER_IMAGE=ghcr.io/$USER/gr4-dev/ubuntu-26.04-gcc:latest
+BUILDER_IMAGE=ghcr.io/$USER/gr4-dev/ubuntu-24.04-gcc-14:latest
 IMAGE_NAMESPACE=ghcr.io/$USER/gr4-dev
-RUNTIME_BASE_IMAGE=ubuntu:26.04
+RUNTIME_BASE_IMAGE=ubuntu:24.04
 SOURCE_MODE=git
 ```
 
@@ -183,7 +197,7 @@ cd images
 GHCR_TOKEN=... \
 ./build-images.sh \
   --push \
-  --profile ubuntu-26.04-gcc \
+  --profile ubuntu-24.04-gcc-14 \
   --gnuradio4-ref <commit-sha>
 ```
 
@@ -194,7 +208,7 @@ cd images
 GHCR_TOKEN=... \
 ./build-images.sh \
   --push \
-  --profile ubuntu-26.04-gcc \
+  --profile ubuntu-24.04-gcc-14 \
   --platforms linux/amd64,linux/arm64
 ```
 
@@ -205,14 +219,30 @@ Print the derived image names and build settings without building:
 
 ```bash
 cd images
-./build-images.sh --dry-run --profile ubuntu-26.04-gcc
+./build-images.sh --dry-run --profile ubuntu-24.04-gcc-14
 ```
 
 Build only selected product images:
 
 ```bash
 cd images
-./build-images.sh --profile ubuntu-26.04-gcc --images control-plane,studio
+./build-images.sh --profile ubuntu-24.04-gcc-14 --images control-plane,studio
+```
+
+Rebuild local images from scratch:
+
+```bash
+docker compose down --remove-orphans
+docker image rm -f \
+  gr4-dev/gnuradio4-sdk:latest \
+  gr4-dev/gr4-control-plane-sdk:latest \
+  gr4-dev/gr4-control-plane-runtime:latest \
+  gr4-dev/gr4-studio:latest \
+  gr4-dev/ubuntu-24.04-base:latest \
+  gr4-dev/ubuntu-24.04-gcc-14:latest
+make -C images build-ubuntu-24.04-gcc-14
+images/build-images.sh --profile ubuntu-24.04-gcc-14 --no-cache
+docker compose up
 ```
 
 ## 3. Run The Production Instance
@@ -298,6 +328,9 @@ Override it directly when needed:
 ```bash
 RUNTIME_BASE_IMAGE=debian:sid ./build-images.sh
 ```
+
+Run this command from the `images/` directory, or use
+`images/build-images.sh` from the repo root.
 
 ## Useful Overrides
 
